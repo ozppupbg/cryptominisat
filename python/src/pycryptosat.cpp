@@ -957,24 +957,21 @@ static PyObject* msolve_selected(Solver *self, PyObject *args, PyObject *kwds)
 
             // Prepare next statement
             // Ban previous solution
-            if (current_nr_of_solutions < max_nr_of_solutions) {
+            std::vector<Lit> ban_solution;
+            const std::vector<lbool> model = self->cmsat->get_model();
 
-                std::vector<Lit> ban_solution;
-                const std::vector<lbool> model = self->cmsat->get_model();
-
-                // Iterate on var_selected (instead of iterate on all vars in solver)
-                for (unsigned long i = 0; i < var_lits.size(); i++) {
-                    if (var_lits[i].sign() == false) {
-                        assert(var_lits[i].var() <= (uint32_t)self->cmsat->nVars());
-                        ban_solution.push_back(
-                            Lit(var_lits[i].var(), (model[var_lits[i].var()] == l_True) ? true : false)
-                        );
-                    }
+            // Iterate on var_selected (instead of iterate on all vars in solver)
+            for (unsigned long i = 0; i < var_lits.size(); i++) {
+                if (var_lits[i].sign() == false) {
+                    assert(var_lits[i].var() <= (uint32_t)self->cmsat->nVars());
+                    ban_solution.push_back(
+                        Lit(var_lits[i].var(), (model[var_lits[i].var()] == l_True) ? true : false)
+                    );
                 }
-
-                // Ban current solution for the next run
-                self->cmsat->add_clause(ban_solution);
             }
+
+            // Ban current solution for the next run
+            self->cmsat->add_clause(ban_solution);
         } else if (res == l_False) {
             // std::cout << "DEBUG :: Solver: No more solution" << std::endl;
         } else if (res == l_Undef) {
