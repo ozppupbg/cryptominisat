@@ -295,6 +295,53 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(res, True)
 
 
+class TestMSolveSelected(unittest.TestCase):
+
+    def setUp(self):
+        self.solver = Solver(threads=2)
+
+    def test_zero_max_solutions(self):
+        self.assertEqual(len(self.solver.msolve_selected(0, [])), 0, msg='wrong number of solutions')
+
+    def test_no_selected(self):
+        clause = [[1, 2, 3, 4]]
+        self.solver.add_clauses(clause)
+        solutions = self.solver.msolve_selected(2, [], raw=False)
+        self.assertEqual(len(solutions), 2, msg='wrong number of solutions')
+        self.assertEqual(solutions[0], solutions[1], msg='returned solutions are not equal')
+        self.assertTrue(check_solution(clause, solutions[0]), msg='incorrect solution')
+
+    def test_raw(self):
+        clause = [[1, 2, 3, 4]]
+        self.solver.add_clauses(clause)
+        raw_solutions = self.solver.msolve_selected(1, [], raw=True)
+        self.assertEqual(len(raw_solutions), 1, msg='wrong number of raw solutions')
+        solutions = self.solver.msolve_selected(1, [], raw=False)
+        self.assertEqual(len(solutions), 1, msg='wrong number of solutions')
+        self.assertTrue(check_solution(clause, solutions[0]), msg='incorrect solution')
+        self.assertEqual(tuple(l > 0 for l in raw_solutions[0]), solutions[0][1:])
+
+    def test_banning_solutions(self):
+        clause = [[1, 2, 3, 4]]
+        self.solver.add_clauses(clause)
+        solutions = self.solver.msolve_selected(10, [1, 2], raw=False)
+        self.assertEqual(len(solutions), 4, msg='wrong number of solutions')
+        for solution in solutions:
+            self.assertTrue(check_solution(clause, solution), msg='incorrect solution')
+        res, _ = self.solver.solve()
+        self.assertEqual(res, False, 'solutions not exhaused')
+
+    def test_repeated_solutions(self):
+        clause = [[1, 2, 3, 4]]
+        self.solver.add_clauses(clause)
+        solutions = self.solver.msolve_selected(15, [1, 2, 3, 4], raw=False)
+        self.assertEqual(len(solutions), 15, msg='wrong number of solutions')
+        for solution in solutions:
+            self.assertTrue(check_solution(clause, solution), msg='incorrect solution')
+        res, _ = self.solver.solve()
+        self.assertEqual(res, False, 'solutions not exhaused')
+
+
 class TestSolveTimeLimit(unittest.TestCase):
 
     def get_clauses(self):
@@ -344,6 +391,7 @@ def run():
     suite.addTest(unittest.makeSuite(TestXor))
     suite.addTest(unittest.makeSuite(InitTester))
     suite.addTest(unittest.makeSuite(TestSolve))
+    suite.addTest(unittest.makeSuite(TestMSolveSelected))
     suite.addTest(unittest.makeSuite(TestDump))
     suite.addTest(unittest.makeSuite(TestSolveTimeLimit))
 
